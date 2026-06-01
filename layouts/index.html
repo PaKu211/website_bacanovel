@@ -1,0 +1,21 @@
+{{ define "title" }}{{ .Site.Title }}{{ end }}
+
+{{ define "main" }}
+  {{ partial "site-header.html" (dict
+    "Context" .
+    "Eyebrow" "Koleksi Novel"
+    "Title" .Site.Title
+    "Description" "Daftar koleksi novel dengan fokus ke pengalaman membaca yang bersih, cepat, dan nyaman di semua perangkat."
+    "ShowBack" false
+  ) }}
+
+  <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+    {{ range .Site.Sections }}
+      {{ partial "novel-card.html" . }}
+    {{ else }}
+      <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 md:col-span-full">
+        Belum ada novel yang dipublikasikan.
+      </div>
+    {{ end }}
+  </section>
+{{ end }}

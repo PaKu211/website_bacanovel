@@ -1,0 +1,20 @@
+{{ $slot := .slot | default "generic" }}
+{{ $raw := .html | default "" }}
+<div class="ad-slot" data-slot="{{ $slot }}">
+  {{ if ne $raw "" }}
+    {{ $raw | safeHTML }}
+  {{ else }}
+    <div>
+      <p class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Sponsor</p>
+      {{ if eq $slot "top" }}
+        <p class="mt-2">[Banner Iklan - Top]</p>
+      {{ else if eq $slot "middle" }}
+        <p class="mt-2">[Banner Iklan - Middle]</p>
+      {{ else if eq $slot "bottom" }}
+        <p class="mt-2">[Banner Iklan - Bottom]</p>
+      {{ else }}
+        <p class="mt-2">[Area Iklan Banner]</p>
+      {{ end }}
+    </div>
+  {{ end }}
+</div>

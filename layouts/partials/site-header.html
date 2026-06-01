@@ -1,0 +1,25 @@
+{{ $ctx := .Context }}
+{{ $eyebrow := default "Novel Reading" .Eyebrow }}
+{{ $title := default $ctx.Site.Title .Title }}
+{{ $description := .Description }}
+{{ $showBack := default false .ShowBack }}
+{{ $backURL := default "/" .BackURL }}
+{{ $backLabel := default "Beranda" .BackLabel }}
+
+<header class="mb-10 flex flex-col gap-6 rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-soft backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    {{ if $showBack }}
+      <a href="{{ $backURL | relURL }}" class="inline-flex w-fit items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-soft hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">&larr; {{ $backLabel }}</a>
+    {{ end }}
+    <p class="{{ if $showBack }}mt-4{{ else }}text-sm{{ end }} font-medium uppercase tracking-[0.3em] text-sky-600 dark:text-sky-400">{{ $eyebrow }}</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ $title }}</h1>
+    {{ with $description }}
+      <p class="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">{{ . }}</p>
+    {{ end }}
+  </div>
+
+  <button type="button" id="theme-toggle" class="control-btn self-start sm:self-auto" aria-label="Toggle dark mode">
+    <span id="theme-toggle-sun" class="hidden">Light</span>
+    <span id="theme-toggle-moon">Dark</span>
+  </button>
+</header>

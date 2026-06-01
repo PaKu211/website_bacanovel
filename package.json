@@ -1,0 +1,17 @@
+{
+  "name": "hugo-novel-theme",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./assets/css/main.css -o ./static/css/main.css --minify",
+    "watch:css": "tailwindcss -i ./assets/css/main.css -o ./static/css/main.css --watch",
+    "start:hugo": "hugo server -D",
+    "dev": "concurrently \"npm:watch:css\" \"npm:start:hugo\" -k",
+    "build": "npm run build:css && hugo --minify"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^7.6.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
+  }
+}
