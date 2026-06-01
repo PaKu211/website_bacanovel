@@ -5,3 +5,8 @@ buildFuture = true
 
 [outputs]
   home = ["HTML", "JSON"]
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
