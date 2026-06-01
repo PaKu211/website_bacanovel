@@ -5,7 +5,8 @@ buildFuture = true
 
 [outputs]
   home = ["HTML", "JSON"]
-
+  page = []
+  section = []
 [markup]
   [markup.goldmark]
     [markup.goldmark.renderer]
