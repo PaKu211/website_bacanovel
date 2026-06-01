@@ -1,6 +1,8 @@
 class SPARouter {
   constructor() {
     this.db = null;
+    this.currentNovelHash = '';
+    this.currentFontSize = 100; // Persentase ukuran font dasar
     this.init();
   }
 
@@ -10,6 +12,8 @@ class SPARouter {
       const data = await response.json();
       this.db = data;
 
+      this.renderNovelKatalog();
+
       window.addEventListener('hashchange', () => this.handleRoute());
       this.handleRoute();
     } catch (error) {
@@ -17,12 +21,10 @@ class SPARouter {
     }
   }
 
-  // LEVEL 1: Render Daftar Novel Unik (Katalog)
   renderNovelKatalog() {
     const listContainer = document.getElementById('novel-list');
     if (!listContainer || !this.db) return;
 
-    // Ambil daftar nama novel yang unik (tanpa duplikat)
     const daftarNovel = [...new Set(this.db.map(chap => chap.novel))];
 
     listContainer.innerHTML = daftarNovel.map(namaNovel => {
@@ -41,12 +43,10 @@ class SPARouter {
     }).join('');
   }
 
-  // LEVEL 2: Render Daftar Bab khusus untuk Novel yang dipilih
   renderDaftarBab(namaNovel) {
     const listContainer = document.getElementById('novel-list');
     if (!listContainer || !this.db) return;
 
-    // Filter bab yang hanya dimiliki oleh novel ini
     const babNovel = this.db.filter(c => c.novel === namaNovel);
 
     listContainer.innerHTML = babNovel.map(chap => `
@@ -59,6 +59,56 @@ class SPARouter {
     `).join('');
   }
 
+  // Fitur Mengubah Ukuran Huruf Cerita secara Instan
+  changeFontSize(direction) {
+    this.currentFontSize += direction * 10;
+    if (this.currentFontSize < 70) this.currentFontSize = 70; // Batas terkecil
+    if (this.currentFontSize > 150) this.currentFontSize = 150; // Batas terbesar
+    
+    const contentDiv = document.getElementById('chapter-content');
+    if (contentDiv) {
+      contentDiv.style.fontSize = `${this.currentFontSize}%`;
+      document.getElementById('font-size-indicator').innerText = `${this.currentFontSize}%`;
+    }
+  }
+
+  // Fitur Hitung Tombol Next & Prev Bab Otomatis
+  setupNavigationButtons(currentChapter) {
+    const prevBtn = document.getElementById('prev-chap-btn');
+    const nextBtn = document.getElementById('next-chap-btn');
+    
+    // Ambil semua bab dari novel yang sama, lalu cari posisi indeks bab saat ini
+    const sekumpulanBab = this.db.filter(c => c.novel === currentChapter.novel);
+    const currentIdx = sekumpulanBab.findIndex(c => c.slug === currentChapter.slug);
+
+    // Atur tombol Bab Sebelumnya
+    if (currentIdx > 0) {
+      prevBtn.href = `#/read/${sekumpulanBab[currentIdx - 1].slug}`;
+      prevBtn.classList.remove('hidden');
+    } else {
+      prevBtn.classList.add('hidden');
+    }
+
+    // Atur tombol Bab Selanjutnya
+    if (currentIdx < sekumpulanBab.length - 1) {
+      nextBtn.href = `#/read/${sekumpulanBab[currentIdx + 1].slug}`;
+      nextBtn.classList.remove('hidden');
+    } else {
+      nextBtn.classList.add('hidden');
+    }
+  }
+
+  // Fitur Memuat Ulang Komentar Cusdis untuk Bab yang Aktif
+  reloadComments(chapter) {
+    const el = document.getElementById('cusdis_thread');
+    if (el && window.renderCusdis) {
+      el.setAttribute('data-page-id', chapter.slug);
+      el.setAttribute('data-page-title', chapter.title);
+      el.setAttribute('data-page-url', window.location.href);
+      window.renderCusdis(el); // Paksa SDK Cusdis menggambar ulang form komentar bab ini
+    }
+  }
+
   handleRoute() {
     const hash = window.location.hash;
     const homeView = document.getElementById('homepage-view');
@@ -67,36 +117,39 @@ class SPARouter {
     const headerDesc = homeView.querySelector('p');
 
     if (hash.startsWith('#/novel/')) {
-      // JALUR TAMPILAN: DAFTAR BAB NOVEL
       const namaNovel = decodeURIComponent(hash.replace('#/novel/', ''));
+      this.currentNovelHash = hash;
       
       headerTitle.innerText = namaNovel;
-      headerDesc.innerHTML = `<button onclick="window.location.hash=''" class="text-blue-400 hover:underline font-medium">← Kembali ke Katalog Utama</button>`;
+      headerDesc.innerHTML = `<button onclick="window.location.hash=''" class="text-blue-400 hover:underline font-medium cursor-pointer">← Kembali ke Katalog Utama</button>`;
       
       this.renderDaftarBab(namaNovel);
       homeView.classList.remove('hidden');
       readView.classList.add('hidden');
 
     } else if (hash.startsWith('#/read/')) {
-      // JALUR TAMPILAN: HALAMAN BACA ISI CERITA
       const slug = hash.replace('#/read/', '');
       const chapter = this.db?.find(c => c.slug === slug);
 
       if (chapter) {
+        this.currentNovelHash = `#/novel/${encodeURIComponent(chapter.novel)}`;
+        
         document.getElementById('chapter-title').innerText = chapter.title;
-        document.getElementById('novel-parent-name').innerHTML = `<button onclick="window.location.hash='#/novel/${encodeURIComponent(chapter.novel)}'" class="text-blue-400 hover:underline">Novel: ${chapter.novel}</button>`;
+        document.getElementById('novel-parent-name').innerHTML = `<a href="${this.currentNovelHash}" class="text-blue-400 hover:underline">Novel: ${chapter.novel}</a>`;
         document.getElementById('chapter-content').innerHTML = chapter.content;
 
-        // Modifikasi tombol kembali di halaman baca agar kembali ke daftar bab novelnya, bukan katalog utama
-        const backBtn = readView.querySelector('button');
-        backBtn.setAttribute('onclick', `window.location.hash='#/novel/${encodeURIComponent(chapter.novel)}'`);
+        // Jalankan fitur navigasi, reset ukuran font, dan load komentar bab
+        this.setupNavigationButtons(chapter);
+        this.reloadComments(chapter);
+        
+        // Terapkan ukuran font yang disimpan user
+        document.getElementById('chapter-content').style.fontSize = `${this.currentFontSize}%`;
 
         homeView.classList.add('hidden');
         readView.classList.remove('hidden');
         window.scrollTo(0, 0);
       }
     } else {
-      // JALUR TAMPILAN: KATALOG UTAMA (DEFAULT)
       headerTitle.innerText = "Katalog Novel";
       headerDesc.innerText = "Selamat membaca proyek hobi buatan sendiri.";
       
@@ -104,10 +157,6 @@ class SPARouter {
       homeView.classList.remove('hidden');
       readView.classList.add('hidden');
     }
-  }
-
-  navigate(path) {
-    window.location.hash = path === '/' ? '' : `#${path}`;
   }
 }
 
