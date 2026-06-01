@@ -1,4 +1,7 @@
 baseURL = "/"
-languageCode = "en-us"
+languageCode = "id-id"
 title = "Novel Reading"
 buildFuture = true
+
+[outputs]
+  home = ["HTML", "JSON"]
