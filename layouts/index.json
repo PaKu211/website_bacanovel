@@ -1,5 +1,5 @@
 {{- $entries := slice -}}
 {{- range .Site.RegularPages -}}
-  {{- $entries = $entries | append (dict "slug" .File.TranslationBaseName "novel" .Parent.Title "title" .Title "content" .Content) -}}
+  {{- $entries = $entries | append (dict "slug" .File.TranslationBaseName "novel" .CurrentSection.Title "title" .Title "content" .Content) -}}
 {{- end -}}
 {{- $entries | jsonify -}}
