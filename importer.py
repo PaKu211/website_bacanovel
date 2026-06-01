@@ -1,90 +1,63 @@
-#!/usr/bin/env python3
-"""
-Simple importer to create Hugo chapter markdown files from a plain text file.
-Usage examples are in README.md. This script is intentionally small and dependency-free.
-"""
-
-import argparse
+import json
 import os
+import re
 import sys
-from datetime import datetime
 
+def slugify(text):
+    """Mengubah judul novel menjadi format folder yang aman (lowercase & strip)"""
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9\-]', '-', text)
+    text = re.sub(r'-+', '-', text)
+    return text.strip('-')
 
-def safe_slug(s: str) -> str:
-    # simple slug: lowercase, replace spaces with '-', keep alphanum and '-'
-    import re
-    s = s.strip().lower()
-    s = re.sub(r"[^a-z0-9\-\s]", "", s)
-    s = re.sub(r"[\s]+", "-", s)
-    return s
+def import_novel(json_path):
+    if not os.path.exists(json_path):
+        print(f"Error: File {json_path} tidak ditemukan!")
+        return
 
+    print(f"Membuka file hasil crawl: {json_path}...")
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
 
-def main():
-    parser = argparse.ArgumentParser(description='Import a plain text file into a Hugo chapter markdown file')
-    parser.add_argument('input', help='Input text file (UTF-8). If - use stdin')
-    parser.add_argument('--novel-slug', required=True, help='Novel slug (used as content directory)')
-    parser.add_argument('--chapter', required=True, help='Chapter number (integer)')
-    parser.add_argument('--title', required=False, help='Chapter title (overrides first line)')
-    parser.add_argument('--date', required=False, help='Date (YYYY-MM-DD). Defaults to today')
-    parser.add_argument('--output-dir', default='content', help='Content root (default: content)')
-    args = parser.parse_args()
+    # 1. Ambil nama novel & buat folder tujuan
+    novel_title = data.get('title', 'Novel Tanpa Judul').strip()
+    novel_slug = slugify(novel_title)
+    novel_dir = os.path.join('content', 'novel', novel_slug)
+    os.makedirs(novel_dir, exist_ok=True)
 
-    # Read input
-    if args.input == '-':
-        raw = sys.stdin.read()
-    else:
-        with open(args.input, 'r', encoding='utf-8') as f:
-            raw = f.read()
+    # 2. Buat file _index.md untuk mengunci nama induk novel di Hugo
+    index_path = os.path.join(novel_dir, '_index.md')
+    if not os.path.exists(index_path):
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write('---\n')
+            f.write(f'title: "{novel_title}"\n')
+            f.write('---\n')
+        print(f"==> Katalog induk baru dibuat untuk: {novel_title}")
 
-    raw = raw.strip('\n')
-    if not raw:
-        print('Empty input', file=sys.stderr)
-        sys.exit(2)
+    # 3. Bongkar dan potong seluruh isi bab
+    chapters = data.get('chapters', [])
+    print(f"==> Ditemukan {len(chapters)} bab. Memulai konversi massal...")
 
-    # If title not given, take first non-empty line as title
-    title = args.title
-    lines = raw.splitlines()
-    content_body = raw
-    if not title:
-        for i, L in enumerate(lines):
-            if L.strip():
-                title = L.strip()
-                # remove first line from content if it's the title
-                content_body = '\n'.join(lines[i+1:]).lstrip('\n')
-                break
+    for idx, ch in enumerate(chapters):
+        ch_title = ch.get('title', f'Chapter {idx+1}').strip()
+        ch_body = ch.get('body', '') # Mengambil HTML teks cerita dari lncrawl
+        
+        # Penamaan file dengan padding angka agar berurutan di sistem (ch-0001.md)
+        ch_slug = f"ch-{idx+1:04d}"
+        ch_file_path = os.path.join(novel_dir, f"{ch_slug}.md")
+        
+        # Tulis ke file Markdown standar Hugo
+        with open(ch_file_path, 'w', encoding='utf-8') as f:
+            f.write('---\n')
+            f.write(f'title: "{ch_title}"\n')
+            f.write(f'weight: {idx+1}\n')
+            f.write('---\n')
+            f.write(ch_body) # Menyuntikkan langsung teks cerita HTML asli
 
-    if not title:
-        title = f'Chapter {args.chapter}'
-
-    date = args.date or datetime.utcnow().strftime('%Y-%m-%d')
-
-    novel_slug = safe_slug(args.novel_slug)
-    chapter_number = str(args.chapter)
-
-    out_dir = os.path.join(args.output_dir, novel_slug)
-    os.makedirs(out_dir, exist_ok=True)
-
-    filename = f'chapter-{chapter_number}.md'
-    out_path = os.path.join(out_dir, filename)
-
-    frontmatter = (
-        '---\n'
-        f'title: "{title.replace("\"", "\\\"")}"\n'
-        f'novel_title: "{args.novel_slug}"\n'
-        f'chapter_number: {chapter_number}\n'
-        f'date: {date}\n'
-        'draft: true\n'
-        'next_chapter: ""\n'
-        'previous_chapter: ""\n'
-        '---\n\n'
-    )
-
-    with open(out_path, 'w', encoding='utf-8') as f:
-        f.write(frontmatter)
-        f.write(content_body)
-
-    print(f'Wrote: {out_path}')
-
+    print(f"🚀 Sukses! {len(chapters)} bab Novel '{novel_title}' berhasil diimpor.")
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) < 2:
+        print("Cara pakai: python importer.py <jalur_file_lncrawl.json>")
+    else:
+        import_novel(sys.argv[1])
