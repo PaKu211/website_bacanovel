@@ -29,7 +29,7 @@
     
     <!-- SLOT IKLAN ATAS -->
     <div id="spa-ad-top" class="py-2 border-b border-neutral-900">
-      {{ partial "ad-slot.html" . }}
+      {{ partial "ad-slot.html" (dict "slot" "top") }}
     </div>
 
     <!-- HEADER JUDUL BAB -->
@@ -47,7 +47,7 @@
 
     <!-- SLOT IKLAN BAWAH -->
     <div id="spa-ad-bottom" class="py-4 border-t border-neutral-900">
-      {{ partial "ad-slot.html" . }}
+      {{ partial "ad-slot.html" (dict "slot" "bottom") }}
     </div>
 
     <!-- TOMBOL NAVIGASI BAB (PREV / NEXT DINAMIS) -->
